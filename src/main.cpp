@@ -21,7 +21,7 @@ const char* fragmentShaderSource =
 "#version 330 core\n"
 "out vec4 FragColor;\n"
 "void main(){\n"
-"   FragColor = vec4(0.2,0.2,0.2,1.0);\n"
+"   FragColor = vec4(1.0,0.0,0.0,1.0);\n"
 "}\n";
 
 int main(void)
@@ -53,7 +53,7 @@ int main(void)
     glEnable(GL_DEPTH_TEST);
 
     float vertices[] = {
-        -1.0f, -1.0f, 0.0f,
+        -3.0f, -1.0f, 2.0f,
          1.0f, -1.0f, 0.0f,
          0.0f,  1.0f, 0.0f
     };
@@ -93,6 +93,14 @@ int main(void)
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
 
+    int success;
+    char infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        printf("Vertex shader compilation failed:\n%s\n", infoLog);
+    }
+
     unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
@@ -104,6 +112,12 @@ int main(void)
 
     glLinkProgram(shaderProgram);
 
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        printf("Shader program linking failed:\n%s\n", infoLog);
+    }
+
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
@@ -114,12 +128,12 @@ int main(void)
     glm::mat4 projection = glm::mat4(1.0f); //projection
     projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);      //settin up projection
     view = glm::lookAt(     // camera set up
-        glm::vec3(4.0f, 3.0f, 3.0f),
+        glm::vec3(0.0f, 0.0f, 3.0f),
         glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
 
-    model = glm::rotate(model, glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 0.0f));   //model rotation
+    model = glm::mat4(1.0f);
 
     while (!glfwWindowShouldClose(window)){
         glClearColor(0.0f,0.0f,0.0f,1.0f);
