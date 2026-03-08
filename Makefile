@@ -1,6 +1,6 @@
-CC = gcc
+CC = g++
 
-SRC = src/main.c libs/glad.c
+SRC = src/main.cpp libs/glad.c
 
 CFLAGS = -Iinclude
 
