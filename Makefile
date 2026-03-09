@@ -1,10 +1,10 @@
-CC = g++
+CC = gcc
 
-SRC = src/main.cpp libs/glad.c
+SRC = src/main.c libs/glad.c
 
 CFLAGS = -Iinclude
 
-LIBS = -lglfw -lGL -lm
+LIBS = -lglfw -lGL -lm -lcglm
 
 OUT = fuck
 
