@@ -4,6 +4,56 @@
 #include <cglm/cglm.h>
 #include <stdlib.h>
 
+typedef struct {
+    unsigned int VAO;
+    unsigned int VBO;
+    int vertexCount;
+} Mesh;
+
+typedef struct {
+    int index;
+    int size;
+    unsigned int type;
+    unsigned char normalized;
+    int stride;
+    size_t offset;
+} Attribute;
+
+Mesh create_mesh(const void* vertices, int vertexCount, int vertexSize,
+                 const Attribute* attributes, int attributeCount,
+                 unsigned int usage) {
+    Mesh mesh;
+    mesh.vertexCount = vertexCount;
+
+    glGenVertexArrays(1, &mesh.VAO);
+    glGenBuffers(1, &mesh.VBO);
+
+    glBindVertexArray(mesh.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh.VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertexCount * vertexSize, vertices, usage);
+
+    for (int i = 0; i < attributeCount; ++i) {
+        const Attribute* attr = &attributes[i];
+        glVertexAttribPointer(attr->index, attr->size, attr->type,
+                              attr->normalized, attr->stride, (void*)attr->offset);
+        glEnableVertexAttribArray(attr->index);
+    }
+
+    //unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    return mesh;
+}
+
+void destroy_mesh(Mesh* mesh) {
+    glDeleteVertexArrays(1, &mesh->VAO);
+    glDeleteBuffers(1, &mesh->VBO);
+    mesh->VAO = 0;
+    mesh->VBO = 0;
+    mesh->vertexCount = 0;
+}
+
 char* load_file(const char* path)
 {
     FILE* f = fopen(path, "rb");
@@ -57,40 +107,19 @@ int main(void)
     char* fragmentShaderSource = load_file("src/shaders/fragment.glsl");
 
     float vertices[] = {
-        -3.0f, -1.0f, 2.0f,
-         1.0f, -1.0f, 0.0f,
-         0.0f,  1.0f, 0.0f
+        //x?      y?     z?         u     v
+         0.0f, -1.0f, 2.0f,      0.0f, 0.0f,
+         1.0f, -1.0f, 0.0f,      1.0f, 0.0f,
+         0.0f,  1.0f, 0.0f,      0.5f, 1.0f
     };
 
-    //VAO-shit
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
+    int vertexCount = 3;
+    int vertexSize = 5 * sizeof(float);
+    Attribute attrs[2] = {
+        {0, 3, GL_FLOAT, GL_FALSE, vertexSize, 0},
+    };
 
-    //VBO-shit
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER,
-                 sizeof(vertices),
-                 vertices,
-                 GL_STATIC_DRAW);
-
-    //vertex struct shit
-    glVertexAttribPointer(
-        0,
-        3,
-        GL_FLOAT,
-        GL_FALSE,
-        3*sizeof(float),
-        (void*)0
-    );
-    glEnableVertexAttribArray(0);
-
-    //unbind VAO shit
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    Mesh triangle = create_mesh(vertices, vertexCount, vertexSize, attrs, 2, GL_STATIC_DRAW);
 
     //shaders compile
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -158,7 +187,7 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
-        glBindVertexArray(VAO);
+        glBindVertexArray(triangle.VAO);
 
         // Перемножаем матрицы: projection * view * model
         mat4 pv;
@@ -168,14 +197,16 @@ int main(void)
         glm_mat4_mul(pv, model, transform);
             // Передаем в шейдер
         glUniformMatrix4fv(transformLoc,1,GL_FALSE,(float*)transform);
-        glDrawArrays(GL_TRIANGLES,0,3);
+        glDrawArrays(GL_TRIANGLES,0,triangle.vertexCount);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    destroy_mesh(&triangle);
+
     glDeleteProgram(shaderProgram);
+    free(vertexShaderSource);
+    free(fragmentShaderSource);
     glfwTerminate();
 }
